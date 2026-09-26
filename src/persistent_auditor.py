@@ -1,11 +1,7 @@
 from pathlib import Path
 import csv
-
-
-
-# 4. Modularity: Maintain your functional design. Create a load_inventory() and
-# save_inventory() function.
-
+import re
+import os
 
 # Persistence: At the start of the program, read the information previously saved
 # in the inventory file. If the inventory file does not exist, start with an empty
@@ -25,12 +21,36 @@ def load_inventory():
     else:
         #create file if check file is false
         with open(file, "w", encoding="utf-8") as f:
+            f.write("Current Orders:\n\n")
             pass
-            #  f.write("Current Orders: \n\n")
 
+def save_inventory(valid_transaction):
+    file = "src/model/inventory.txt"
+    next_id = 1001
 
-# def save_inventory()
+    # 1. Read existing file to find the highest current ID
+    if os.path.exists(file):
+        with open(file, "r", encoding="utf-8") as f:
+            existing_ids = []
+            for line in f:
+                parts = line.strip().split(",")
+                first_item = parts[0].strip()
+                if first_item.isdigit():
+                    existing_ids.append(int(first_item))
+                
+            if existing_ids:
+                next_id = max(existing_ids) + 1
+    with open(file, "a", encoding="utf-8") as f:
+        for transaction in valid_transaction:
+            product_name , quantity = transaction
+            f.write(f"{next_id}, {product_name}, {quantity}\n")
+            
+    with open(file, "r", encoding="utf-8") as f:
+        content = f.read()
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        last_order = lines[-1] if lines else "No orders found"
 
+        return f"{content}\n\nNew Order Added:\n{last_order}\n\nOrder successfully saved to order.txt"
 
 
 current_total = 0 # stock handle 
@@ -76,34 +96,37 @@ def generate_report(current_total, errors):
 while True:
     load_inventory()
     # 1. Initialize the inventory to zero in the start
-    user_input = input("Please enter stock value: or type `quit` to kill the program: ")
+    product_input = input("Enter Product Name: ")
+    if product_input.lower() == "quit":
+        print(save_inventory(valid_transaction))
+
+        break
+    user_input = input("Enter Quantity: ") #quantity value
 
     if check_user_input(user_input) == "quit":
         # 3. Write-Back: When the user types quit, save the final total and the transaction
         # history list to inventory.txt.
-
-
-
-
+        print(save_inventory(valid_transaction))
 
         total_inventory , errors = generate_report(current_total, errors)
-        print("Number of Failed/Rejected Entries:", errors)
-        print("Total Units Processed Inventory:" , total_inventory)
-        print(valid_transaction)
         break
 
     #logic of my operations
     elif (check_user_input(user_input)):
         stock_value = int(user_input)
+
+        #append values to array for file writing operations
+        valid_transaction.append((product_input, stock_value))
+
         #pass user input to process delivery for logic oprs
         current_total = process_delivery(current_total, stock_value)
 
-        valid_transaction.append(stock_value)
-        print("Total inventory:" , current_total )
+        # print("Total inventory:" , current_total )
 
         #tax calculation
-        tax = calculate_tax(stock_value)
-        print("Total Tax for this Delivery:"  , tax)
+        # tax = calculate_tax(stock_value)
+        # print("Total Tax for this Delivery:"  , tax)
+
         # 7. Trigger Overstock Alert: If the total inventory exceeds 500 units, print an
         # alert and break the loop immediately. (keep in mind of the conditional flow we
         # discussed this week: if, elif and else)
